@@ -1,8 +1,11 @@
-# ============================================
-# БЕЛЫЙ АНГЕЛ - OSINT Investigator v2.0
-# Автономный инструмент анализа данных
-# Работает без зависимостей, только Python 3
-# ============================================
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+БЕЛЫЙ АНГЕЛ - OSINT Investigator v2.1
+Автономный инструмент для сбора открытой информации
+GitHub: https://github.com/yourusername/white-angel
+Лицензия: MIT
+"""
 
 import urllib.request
 import urllib.error
@@ -11,537 +14,378 @@ import socket
 import re
 import os
 import sys
-import time
 import ssl
 from datetime import datetime
+from urllib.parse import quote
 
-class БелыйАнгел:
+class WhiteAngel:
+    """Main OSINT investigation tool class"""
+    
     def __init__(self):
-        self.user_agent = "БелыйАнгел/2.0 (OSINT Investigator)"
-        self.timeout = 10
+        self.user_agent = "WhiteAngel/2.1"
+        self.timeout = 8
         self.results = []
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-    def печать_логотип(self):
-        лого = r"""
-╔══════════════════════════════════════════════════════════════════╗
-║                                                                  ║
-║  ██████╗ ███████╗██╗     ██╗    ██╗    ███████╗██╗███╗   ██╗    ║
-║  ██╔══██╗██╔════╝██║     ██║    ██║    ██╔════╝██║████╗  ██║    ║
-║  ██████╔╝█████╗  ██║     ██║ █╗ ██║    █████╗  ██║██╔██╗ ██║    ║
-║  ██╔══██╗██╔══╝  ██║     ██║███╗██║    ██╔══╝  ██║██║╚██╗██║    ║
-║  ██████╔╝███████╗███████╗╚███╔███╔╝    ███████╗██║██║ ╚████║    ║
-║  ╚═════╝ ╚══════╝╚══════╝ ╚══╝╚══╝     ╚══════╝╚═╝╚═╝  ╚═══╝    ║
-║                                                                  ║
-║  █████╗ ███╗   ██╗ ██████╗ ███████╗██╗     ███████╗             ║
-║ ██╔══██╗████╗  ██║██╔════╝ ██╔════╝██║     ██╔════╝             ║
-║ ███████║██╔██╗ ██║██║  ███╗█████╗  ██║     ███████╗             ║
-║ ██╔══██║██║╚██╗██║██║   ██║██╔══╝  ██║     ╚════██║             ║
-║ ██║  ██║██║ ╚████║╚██████╔╝███████╗███████╗███████║             ║
-║ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝╚══════╝             ║
-║                                                                  ║
-║               Б Е Л Ы Й   А Н Г Е Л   v2.0                       ║
-║                OSINT Investigator Tool                           ║
-║                                                                  ║
-╚══════════════════════════════════════════════════════════════════╝
-"""
-        print("\033[96m" + лого + "\033[0m")
-        print(f"\033[90mСессия: {self.session_id} | Время: {datetime.now().strftime('%H:%M:%S')}\033[0m")
-        print(f"\033[93m{'-'*70}\033[0m")
+        self.colors = {
+            'red': '\033[91m',
+            'green': '\033[92m',
+            'yellow': '\033[93m',
+            'blue': '\033[94m',
+            'purple': '\033[95m',
+            'cyan': '\033[96m',
+            'white': '\033[97m',
+            'end': '\033[0m'
+        }
     
-    def запрос_безопасный(self, url, метод='GET', данные=None):
-        """Безопасный HTTP запрос с обработкой ошибок"""
+    def print_logo(self):
+        """Display ASCII logo"""
+        logo = f"""
+{self.colors['cyan']}
+╔══════════════════════════════════════════════════════╗
+║                                                      ║
+║     ██████╗ ███████╗██╗     ██╗    ██╗    ███████╗  ║
+║     ██╔══██╗██╔════╝██║     ██║    ██║    ██╔════╝  ║
+║     ██████╔╝█████╗  ██║     ██║ █╗ ██║    █████╗    ║
+║     ██╔══██╗██╔══╝  ██║     ██║███╗██║    ██╔══╝    ║
+║     ██████╔╝███████╗███████╗╚███╔███╔╝    ███████╗  ║
+║     ╚═════╝ ╚══════╝╚══════╝ ╚══╝╚══╝     ╚══════╝  ║
+║                                                      ║
+║     █████╗ ███╗   ██╗ ██████╗ ███████╗██╗           ║
+║    ██╔══██╗████╗  ██║██╔════╝ ██╔════╝██║           ║
+║    ███████║██╔██╗ ██║██║  ███╗█████╗  ██║           ║
+║    ██╔══██║██║╚██╗██║██║   ██║██╔══╝  ██║           ║
+║    ██║  ██║██║ ╚████║╚██████╔╝███████╗███████╗      ║
+║    ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝      ║
+║                                                      ║
+║               W H I T E   A N G E L                  ║
+║               OSINT Investigator v2.1                ║
+║                                                      ║
+╚══════════════════════════════════════════════════════╝
+{self.colors['end']}"""
+        print(logo)
+        print(f"{self.colors['yellow']}[Session: {self.session_id}] [Time: {datetime.now().strftime('%H:%M:%S')}]{self.colors['end']}")
+        print(f"{self.colors['white']}{'='*58}{self.colors['end']}")
+    
+    def safe_request(self, url, method='GET'):
+        """Safe HTTP request with error handling"""
         try:
-            # Создаем контекст без проверки SSL (для старых сайтов)
-            контекст = ssl._create_unverified_context()
-            
-            запрос = urllib.request.Request(
+            context = ssl._create_unverified_context()
+            request = urllib.request.Request(
                 url,
-                data=данные,
                 headers={'User-Agent': self.user_agent},
-                method=метод
+                method=method
             )
-            
-            with urllib.request.urlopen(запрос, timeout=self.timeout, context=контекст) as ответ:
-                содержимое = ответ.read().decode('utf-8', errors='ignore')
-                заголовки = dict(ответ.getheaders())
-                статус = ответ.getcode()
-                
+            with urllib.request.urlopen(request, timeout=self.timeout, context=context) as response:
                 return {
-                    'статус': статус,
-                    'содержимое': содержимое,
-                    'заголовки': заголовки,
-                    'url': url
+                    'status': response.status,
+                    'content': response.read().decode('utf-8', 'ignore'),
+                    'headers': dict(response.getheaders())
                 }
-                
         except urllib.error.HTTPError as e:
-            return {'ошибка': f'HTTP {e.code}: {e.reason}', 'статус': e.code}
+            return {'error': f'HTTP {e.code}: {e.reason}', 'status': e.code}
         except urllib.error.URLError as e:
-            return {'ошибка': f'URL Error: {e.reason}', 'статус': 0}
+            return {'error': f'URL Error: {e.reason}', 'status': 0}
         except Exception as e:
-            return {'ошибка': f'Ошибка: {str(e)}', 'статус': 0}
+            return {'error': str(e), 'status': 0}
     
-    def анализ_ip(self, ip):
-        """Полный анализ IP адреса"""
-        print(f"\n\033[94m[✦] АНАЛИЗ IP: {ip}\033[0m")
-        print("\033[90m" + "─"*60 + "\033[0m")
-        
-        результаты = []
-        
-        # 1. Проверка через ip-api
-        print("\033[93m[1/5] Геолокация...\033[0m")
-        данные = self.запрос_безопасный(f"http://ip-api.com/json/{ip}")
-        if 'содержимое' in данные:
-            инфо = json.loads(данные['содержимое'])
-            if инфо.get('status') == 'success':
-                результаты.append("📍 \033[92mГЕОЛОКАЦИЯ:\033[0m")
-                результаты.append(f"   Страна: {инфо.get('country', 'N/A')} ({инфо.get('countryCode', 'N/A')})")
-                результаты.append(f"   Регион: {инфо.get('regionName', 'N/A')}")
-                результаты.append(f"   Город: {инфо.get('city', 'N/A')}")
-                результаты.append(f"   ZIP: {инфо.get('zip', 'N/A')}")
-                результаты.append(f"   Координаты: {инфо.get('lat', 'N/A')}, {инфо.get('lon', 'N/A')}")
-                результаты.append(f"   Часовой пояс: {инфо.get('timezone', 'N/A')}")
-        
-        # 2. Информация о провайдере
-        print("\033[93m[2/5] Провайдер...\033[0m")
-        if инфо.get('isp'):
-            результаты.append(f"📡 \033[92mПРОВАЙДЕР:\033[0m {инфо.get('isp', 'N/A')}")
-            результаты.append(f"   Организация: {инфо.get('org', 'N/A')}")
-            результаты.append(f"   AS номер: {инфо.get('as', 'N/A')}")
-        
-        # 3. Проверка на прокси/VPN
-        print("\033[93m[3/5] Проверка анонимности...\033[0m")
-        прокси_чек = self.запрос_безопасный(f"https://vpnapi.io/api/{ip}?key=demo")
-        if 'содержимое' in прокси_чек:
-            прокси_данные = json.loads(прокси_чек['содержимое'])
-            if 'security' in прокси_данные:
-                результаты.append("🔒 \033[92mАНАЛИЗ АНОНИМНОСТИ:\033[0m")
-                результаты.append(f"   Прокси: {'ДА' if прокси_данные.get('security', {}).get('proxy', False) else 'НЕТ'}")
-                результаты.append(f"   VPN: {'ДА' if прокси_данные.get('security', {}).get('vpn', False) else 'НЕТ'}")
-                результаты.append(f"   Tor: {'ДА' if прокси_данные.get('security', {}).get('tor', False) else 'НЕТ'}")
-        
-        # 4. Исторические данные
-        print("\033[93m[4/5] Исторические данные...\033[0m")
-        результаты.append("📊 \033[92mСЕТЕВЫЕ ДАННЫЕ:\033[0m")
-        try:
-            имя = socket.gethostbyaddr(ip)[0]
-            результаты.append(f"   Имя хоста: {имя}")
-        except:
-            результаты.append(f"   Имя хоста: Не найдено")
-        
-        # 5. Проверка портов (быстрая)
-        print("\033[93m[5/5] Сканирование портов...\033[0m")
-        открытые = []
-        порты = [21, 22, 23, 25, 53, 80, 110, 143, 443, 465, 587, 993, 995, 3306, 3389]
-        
-        for порт in порты[:5]:  # Только первые 5 для скорости
-            try:
-                сокет_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                сокет_conn.settimeout(1)
-                результат = сокет_conn.connect_ex((ip, порт))
-                if результат == 0:
-                    открытые.append(str(порт))
-                сокет_conn.close()
-            except:
-                pass
-        
-        if открытые:
-            результаты.append(f"   Открытые порты: {', '.join(открытые)}")
-        
-        # Вывод результатов
-        for строка in результаты:
-            print(строка)
-        
-        self.результаты.extend(результаты)
-        return результаты
+    # ==================== ANALYSIS MODULES ====================
     
-    def анализ_домена(self, домен):
-        """Глубокий анализ домена"""
-        print(f"\n\033[94m[✦] АНАЛИЗ ДОМЕНА: {домен}\033[0m")
-        print("\033[90m" + "─"*60 + "\033[0m")
+    def analyze_ip(self, ip):
+        """Analyze IP address"""
+        print(f"{self.colors['blue']}[🔍] Analyzing IP: {ip}{self.colors['end']}")
+        print(f"{self.colors['white']}{'-'*50}{self.colors['end']}")
         
-        результаты = []
+        results = []
         
-        # 1. WHOIS информация
-        print("\033[93m[1/6] WHOIS информация...\033[0m")
-        whois = self.запрос_безопасный(f"https://api.hackertarget.com/whois/?q={домен}")
-        if 'содержимое' in whois:
-            данные = whois['содержимое']
-            if 'error' not in данные.lower():
-                результаты.append("📋 \033[92mWHOIS ДАННЫЕ:\033[0m")
-                строки = данные.split('\n')[:20]
-                for строка in строки:
-                    if строка.strip() and ':' in строка:
-                        результаты.append(f"   {строка.strip()}")
+        # IP-API.com for geolocation
+        data = self.safe_request(f"http://ip-api.com/json/{ip}")
+        if data.get('content'):
+            info = json.loads(data['content'])
+            if info.get('status') == 'success':
+                results.append(f"{self.colors['green']}[+] Country: {info.get('country', 'N/A')}")
+                results.append(f"[+] City: {info.get('city', 'N/A')}")
+                results.append(f"[+] ISP: {info.get('isp', 'N/A')}")
+                results.append(f"[+] Coordinates: {info.get('lat', 'N/A')}, {info.get('lon', 'N/A')}")
+                results.append(f"[+] Timezone: {info.get('timezone', 'N/A')}{self.colors['end']}")
         
-        # 2. DNS записи
-        print("\033[93m[2/6] DNS записи...\033[0m")
-        dns = self.запрос_безопасный(f"https://api.hackertarget.com/dnslookup/?q={домен}")
-        if 'содержимое' in dns:
-            данные = dns['содержимое']
-            if 'error' not in данные.lower():
-                результаты.append("🌐 \033[92mDNS ЗАПИСИ:\033[0m")
-                for запись in данные.split('\n')[:15]:
-                    if запись.strip():
-                        результаты.append(f"   {запись}")
-        
-        # 3. Поиск поддоменов
-        print("\033[93m[3/6] Поиск поддоменов...\033[0m")
-        subdomains = self.запрос_безопасный(f"https://api.hackertarget.com/hostsearch/?q={домен}")
-        if 'содержимое' in subdomains:
-            данные = subdomains['содержимое']
-            if 'error' not in данные.lower() and данные.strip():
-                результаты.append("🔍 \033[92mНАЙДЕННЫЕ ПОДДОМЕНЫ:\033[0m")
-                for строка in данные.split('\n')[:10]:
-                    if строка.strip():
-                        поддомен = строка.split(',')[0]
-                        результаты.append(f"   • {поддомен}")
-        
-        # 4. Проверка SSL
-        print("\033[93m[4/6] Проверка SSL...\033[0m")
+        # AbuseIPDB check
         try:
-            контекст = ssl.create_default_context()
-            with socket.create_connection((домен, 443), timeout=5) as sock:
-                with контекст.wrap_socket(sock, server_hostname=домен) as ssock:
-                    сертификат = ssock.getpeercert()
-                    результаты.append("🔐 \033[92mSSL СЕРТИФИКАТ:\033[0m")
-                    результаты.append(f"   Действителен до: {сертификат['notAfter']}")
-                    # Издатель в читаемом формате
-                    издатель = ''
-                    for item in сертификат['issuer']:
-                        for key, value in item:
-                            if key == 'organizationName':
-                                издатель = value
-                                break
-                    результаты.append(f"   Издатель: {издатель}")
-        except Exception as e:
-            результаты.append(f"🔐 \033[91mSSL не обнаружен: {str(e)[:50]}\033[0m")
-        
-        # 5. Заголовки HTTP
-        print("\033[93m[5/6] HTTP заголовки...\033[0m")
-        try:
-            заголовки = self.запрос_безопасный(f"http://{домен}")
-            if 'заголовки' in заголовки:
-                результаты.append("📄 \033[92mHTTP ЗАГОЛОВКИ:\033[0m")
-                важные = ['server', 'x-powered-by', 'x-frame-options', 'content-security-policy']
-                for ключ, значение in заголовки['заголовки'].items():
-                    for важный in важные:
-                        if важный in ключ.lower():
-                            результаты.append(f"   {ключ}: {значение}")
-                            break
+            abuse_check = self.safe_request(f"https://api.abuseipdb.com/api/v2/check?ipAddress={ip}")
+            if abuse_check.get('content'):
+                abuse_data = json.loads(abuse_check['content'])
+                if abuse_data.get('data'):
+                    results.append(f"{self.colors['yellow']}[!] Abuse Score: {abuse_data['data'].get('abuseConfidenceScore', 'N/A')}")
+                    results.append(f"[!] Reports: {abuse_data['data'].get('totalReports', 'N/A')}{self.colors['end']}")
         except:
             pass
         
-        # 6. Проверка на уязвимости
-        print("\033[93m[6/6] Безопасность...\033[0m")
-        безопасность = []
+        # Display results
+        for line in results:
+            print(line)
         
-        # Проверка robots.txt
-        роботы = self.запрос_безопасный(f"http://{домен}/robots.txt")
-        if 'статус' in роботы and роботы['статус'] == 200:
-            безопасность.append("robots.txt доступен")
-        
-        # Проверка security.txt
-        security = self.запрос_безопасный(f"http://{домен}/.well-known/security.txt")
-        if 'статус' in security and security['статус'] == 200:
-            безопасность.append("security.txt найден")
-        
-        if безопасность:
-            результаты.append("🛡️ \033[92mБЕЗОПАСНОСТЬ:\033[0m")
-            for пункт in безопасность:
-                результаты.append(f"   • {пункт}")
-        
-        # Вывод результатов
-        for строка in результаты:
-            print(строка)
-        
-        self.результаты.extend(результаты)
-        return результаты
+        self.results.extend(results)
+        return results
     
-    def анализ_телефона(self, телефон):
-        """Анализ телефонного номера"""
-        print(f"\n\033[94m[✦] АНАЛИЗ ТЕЛЕФОНА: {телефон}\033[0m")
-        print("\033[90m" + "─"*60 + "\033[0m")
+    def analyze_domain(self, domain):
+        """Analyze domain information"""
+        print(f"{self.colors['blue']}[🌐] Analyzing Domain: {domain}{self.colors['end']}")
+        print(f"{self.colors['white']}{'-'*50}{self.colors['end']}")
         
-        результаты = []
+        results = []
         
-        # Очистка номера
-        чистый = re.sub(r'[^0-9+]', '', телефон)
-        результаты.append(f"📱 \033[92mОЧИЩЕННЫЙ НОМЕР:\033[0m {чистый}")
+        # WHOIS information
+        whois_data = self.safe_request(f"https://api.hackertarget.com/whois/?q={domain}")
+        if whois_data.get('content') and 'error' not in whois_data['content'].lower():
+            results.append(f"{self.colors['green']}[+] WHOIS Information:{self.colors['end']}")
+            for line in whois_data['content'].split('\n')[:10]:
+                if line.strip():
+                    results.append(f"   {line}")
         
-        # Определение оператора (для RU/UA)
-        операторы = {
-            '79': 'Россия • Билайн/Мегафон/МТС',
-            '89': 'Россия • Теле2/МТС',
-            '38': 'Украина • Киевстар/Vodafone',
-            '77': 'Казахстан • Beeline/Kcell',
-            '99': 'Узбекистан • Ucell'
-        }
+        # DNS records
+        dns_data = self.safe_request(f"https://api.hackertarget.com/dnslookup/?q={domain}")
+        if dns_data.get('content') and 'error' not in dns_data['content'].lower():
+            results.append(f"{self.colors['green']}[+] DNS Records:{self.colors['end']}")
+            for line in dns_data['content'].split('\n')[:8]:
+                if line.strip():
+                    results.append(f"   {line}")
         
-        номер_без_плюса = чистый.replace('+', '')
-        for префикс, оператор in операторы.items():
-            if номер_без_плюса.startswith(префикс):
-                результаты.append(f"📞 \033[92mОПЕРАТОР:\033[0m {оператор}")
-                break
+        # Subdomain search
+        subs_data = self.safe_request(f"https://api.hackertarget.com/hostsearch/?q={domain}")
+        if subs_data.get('content') and 'error' not in subs_data['content'].lower():
+            subdomains = [line.split(',')[0] for line in subs_data['content'].split('\n') if line]
+            if subdomains:
+                results.append(f"{self.colors['green']}[+] Found Subdomains:{self.colors['end']}")
+                for sub in subdomains[:5]:
+                    results.append(f"   • {sub}")
         
-        # Проверка в социальных сетях
-        print("\033[93mПоиск в социальных сетях...\033[0m")
+        # Display results
+        for line in results:
+            print(line)
         
-        соцсети = {
-            'Telegram': f'https://t.me/{номер_без_плюса}',
-            'WhatsApp': f'https://wa.me/{номер_без_плюса}',
-            'VK': f'https://vk.com/phone/{номер_без_плюса}'
-        }
+        self.results.extend(results)
+        return results
+    
+    def analyze_phone(self, phone):
+        """Analyze phone number"""
+        print(f"{self.colors['blue']}[📱] Analyzing Phone: {phone}{self.colors['end']}")
+        print(f"{self.colors['white']}{'-'*50}{self.colors['end']}")
         
-        результаты.append("🔍 \033[92mСОЦИАЛЬНЫЕ ССЫЛКИ:\033[0m")
-        for сеть, ссылка in соцсети.items():
-            результаты.append(f"   {сеть}: {ссылка}")
+        results = []
         
-        # Проверка на спам
-        print("\033[93mПроверка на спам...\033[0m")
-        спам_базы = [
-            f'https://spamcalls.net/ru/search?q={чистый}',
-            f'https://callfilter.app/{чистый}'
+        # Clean phone number
+        clean = re.sub(r'[^0-9+]', '', phone)
+        results.append(f"{self.colors['green']}[+] Clean Number: {clean}")
+        
+        # Messaging links
+        results.append(f"[+] Messaging Links:{self.colors['end']}")
+        results.append(f"   WhatsApp: https://wa.me/{clean}")
+        results.append(f"   Telegram: https://t.me/{clean}")
+        results.append(f"   Viber: viber://chat?number={clean}")
+        
+        # Google search
+        query = quote(f'"{phone}" OR "{clean}"')
+        results.append(f"{self.colors['green']}[+] Search Links:{self.colors['end']}")
+        results.append(f"   Google: https://www.google.com/search?q={query}")
+        
+        # Display results
+        for line in results:
+            print(line)
+        
+        self.results.extend(results)
+        return results
+    
+    def analyze_email(self, email):
+        """Analyze email address"""
+        print(f"{self.colors['blue']}[📧] Analyzing Email: {email}{self.colors['end']}")
+        print(f"{self.colors['white']}{'-'*50}{self.colors['end']}")
+        
+        results = []
+        
+        # Validate format
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            print(f"{self.colors['red']}[-] Invalid email format{self.colors['end']}")
+            return results
+        
+        results.append(f"{self.colors['green']}[+] Valid Email: Yes")
+        
+        # Split email
+        local, domain = email.split('@')
+        results.append(f"[+] Local Part: {local}")
+        results.append(f"[+] Domain: {domain}")
+        
+        # Social media search
+        results.append(f"[+] Social Media Links:{self.colors['end']}")
+        results.append(f"   VK: https://vk.com/{local}")
+        results.append(f"   Telegram: https://t.me/{local}")
+        results.append(f"   GitHub: https://github.com/{local}")
+        
+        # Breach check links
+        results.append(f"{self.colors['green']}[+] Breach Check:{self.colors['end']}")
+        results.append(f"   HaveIBeenPwned: https://haveibeenpwned.com/account/{email}")
+        results.append(f"   Firefox Monitor: https://monitor.firefox.com/scan/{email}")
+        
+        # Display results
+        for line in results:
+            print(line)
+        
+        self.results.extend(results)
+        return results
+    
+    def search_username(self, username):
+        """Search username across platforms"""
+        print(f"{self.colors['blue']}[👤] Searching Username: {username}{self.colors['end']}")
+        print(f"{self.colors['white']}{'-'*50}{self.colors['end']}")
+        
+        results = []
+        found = []
+        
+        # Platforms to check
+        platforms = [
+            ('VK', f'https://vk.com/{username}'),
+            ('Telegram', f'https://t.me/{username}'),
+            ('GitHub', f'https://github.com/{username}'),
+            ('Instagram', f'https://instagram.com/{username}'),
+            ('Twitter/X', f'https://twitter.com/{username}'),
+            ('YouTube', f'https://youtube.com/@{username}'),
+            ('Twitch', f'https://twitch.tv/{username}')
         ]
         
-        результаты.append("🚫 \033[92mПРОВЕРКА СПАМА:\033[0m")
-        for база in спам_базы:
-            результаты.append(f"   • {база}")
+        print(f"{self.colors['yellow']}[*] Checking platforms...{self.colors['end']}")
         
-        # Поиск в Google
-        результаты.append("🌐 \033[92mGOOGLE ПОИСК:\033[0m")
-        запрос = urllib.parse.quote(f'"{телефон}" OR "{чистый}"')
-        результаты.append(f"   https://www.google.com/search?q={запрос}")
-        
-        # Вывод результатов
-        for строка in результаты:
-            print(строка)
-        
-        self.результаты.extend(результаты)
-        return результаты
-    
-    def анализ_почты(self, почта):
-        """Анализ email адреса"""
-        print(f"\n\033[94m[✦] АНАЛИЗ EMAIL: {почта}\033[0m")
-        print("\033[90m" + "─"*60 + "\033[0m")
-        
-        результаты = []
-        
-        # Проверка формата
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', почта):
-            print("\033[91m❌ Неверный формат email\033[0m")
-            return
-        
-        результаты.append(f"📧 \033[92mВАЛИДНЫЙ EMAIL:\033[0m Да")
-        
-        # Разбор email
-        локальная, домен = почта.split('@')
-        результаты.append(f"👤 \033[92mЛОКАЛЬНАЯ ЧАСТЬ:\033[0m {локальная}")
-        результаты.append(f"🌐 \033[92mДОМЕН:\033[0m {домен}")
-        
-        # Проверка MX записей
-        print("\033[93mПроверка MX записей...\033[0m")
-        try:
-            # Простая проверка DNS
-            socket.gethostbyname(домен)
-            результаты.append(f"📨 \033[92mДОМЕН РАБОТАЕТ:\033[0m Да")
-        except:
-            результаты.append(f"📨 \033[91mДОМЕН НЕ РАБОТАЕТ:\033[0m Нет")
-        
-        # Поиск в социальных сетях
-        print("\033[93mПоиск в социальных сетях...\033[0m")
-        
-        соцсети = {
-            'VK': f'https://vk.com/{локальная}',
-            'Telegram': f'https://t.me/{локальная}',
-            'GitHub': f'https://github.com/{локальная}',
-            'Instagram': f'https://instagram.com/{локальная}',
-            'Twitter': f'https://twitter.com/{локальная}'
-        }
-        
-        результаты.append("🔍 \033[92mСОЦИАЛЬНЫЕ ССЫЛКИ:\033[0m")
-        for сеть, ссылка in соцсети.items():
-            результаты.append(f"   {сеть}: {ссылка}")
-        
-        # Проверка утечек
-        print("\033[93mПроверка утечек данных...\033[0m")
-        утечки_сервисы = [
-            f'https://haveibeenpwned.com/account/{почта}',
-            f'https://monitor.firefox.com/scan/{почта}'
-        ]
-        
-        результаты.append("⚠️  \033[92mПРОВЕРКА УТЕЧЕК:\033[0m")
-        for сервис in утечки_сервисы:
-            результаты.append(f"   • {сервис}")
-        
-        # Google поиск
-        результаты.append("🌐 \033[92mGOOGLE ПОИСК:\033[0m")
-        запрос = urllib.parse.quote(f'"{почта}" OR "{локальная}"')
-        результаты.append(f"   https://www.google.com/search?q={запрос}")
-        
-        # Вывод результатов
-        for строка in результаты:
-            print(строка)
-        
-        self.результаты.extend(результаты)
-        return результаты
-    
-    def поиск_никнейма(self, никнейм):
-        """Поиск никнейма по всем платформам"""
-        print(f"\n\033[94m[✦] ПОИСК НИКНЕЙМА: {никнейм}\033[0m")
-        print("\033[90m" + "─"*60 + "\033[0m")
-        
-        результаты = []
-        
-        платформы = [
-            ('VK', f'https://vk.com/{никнейм}'),
-            ('Telegram', f'https://t.me/{никнейм}'),
-            ('GitHub', f'https://github.com/{никнейм}'),
-            ('Instagram', f'https://instagram.com/{никнейм}'),
-            ('Twitter/X', f'https://twitter.com/{никнейм}'),
-            ('YouTube', f'https://youtube.com/@{никнейм}'),
-            ('Twitch', f'https://twitch.tv/{никнейм}'),
-            ('Steam', f'https://steamcommunity.com/id/{никнейм}'),
-            ('Reddit', f'https://reddit.com/user/{никнейм}'),
-            ('Pinterest', f'https://pinterest.com/{никнейм}'),
-            ('TikTok', f'https://tiktok.com/@{никнейм}')
-        ]
-        
-        print("\033[93mСканирование платформ...\033[0m")
-        найдено = []
-        
-        for платформа, ссылка in платформы:
+        for platform, url in platforms:
             try:
-                ответ = self.запрос_безопасный(ссылка)
-                if ответ.get('статус', 0) < 400:
-                    найдено.append((платформа, ссылка))
-                    print(f"\033[92m   ✓ {платформа}\033[0m")
+                response = self.safe_request(url)
+                if response.get('status', 0) < 400:
+                    found.append((platform, url))
+                    print(f"{self.colors['green']}   ✓ {platform}{self.colors['end']}")
                 else:
-                    print(f"\033[90m   ✗ {платформа}\033[0m")
+                    print(f"{self.colors['white']}   ✗ {platform}{self.colors['end']}")
             except:
-                print(f"\033[90m   ? {платформа}\033[0m")
+                print(f"{self.colors['white']}   ? {platform}{self.colors['end']}")
         
-        if найдено:
-            результаты.append("✅ \033[92mНАЙДЕННЫЕ ПРОФИЛИ:\033[0m")
-            for платформа, ссылка in найдено:
-                результаты.append(f"   • {платформа}: {ссылка}")
+        if found:
+            results.append(f"{self.colors['green']}[+] Found Profiles:{self.colors['end']}")
+            for platform, url in found:
+                results.append(f"   • {platform}: {url}")
         else:
-            результаты.append("❌ \033[91mПрофили не найдены\033[0m")
+            results.append(f"{self.colors['yellow']}[-] No profiles found{self.colors['end']}")
         
-        # Дополнительный поиск
-        результаты.append("\n🔍 \033[92mДОПОЛНИТЕЛЬНЫЙ ПОИСК:\033[0m")
-        результаты.append(f"   Google: https://www.google.com/search?q=%22{никнейм}%22")
-        результаты.append(f"   Яндекс: https://yandex.ru/search/?text=%22{никнейм}%22")
-        результаты.append(f"   Поиск по фото: https://images.google.com/searchbyimage?image_url={никнейм}")
+        # Search engines
+        results.append(f"{self.colors['green']}[+] Search Engine Links:{self.colors['end']}")
+        results.append(f"   Google: https://www.google.com/search?q=%22{username}%22")
+        results.append(f"   Yandex: https://yandex.ru/search/?text=%22{username}%22")
         
-        # Вывод результатов
-        for строка in результаты:
-            print(строка)
+        # Display results
+        for line in results:
+            print(line)
         
-        self.результаты.extend(результаты)
-        return результаты
+        self.results.extend(results)
+        return results
     
-    def сохранить_отчет(self):
-        """Сохранение результатов в файл"""
-        if not self.результаты:
-            print("\n\033[91mНет данных для сохранения\033[0m")
+    def save_report(self):
+        """Save results to file"""
+        if not self.results:
+            print(f"{self.colors['red']}[-] No data to save{self.colors['end']}")
             return
         
-        имя_файла = f"белый_ангел_отчет_{self.session_id}.txt"
+        filename = f"white_angel_report_{self.session_id}.txt"
         
-        with open(имя_файла, 'w', encoding='utf-8') as файл:
-            файл.write("="*70 + "\n")
-            файл.write(f"ОТЧЕТ 'БЕЛЫЙ АНГЕЛ' - {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n")
-            файл.write("="*70 + "\n\n")
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write("=" * 60 + "\n")
+                f.write(f"WHITE ANGEL OSINT REPORT - {datetime.now()}\n")
+                f.write("=" * 60 + "\n\n")
+                
+                for result in self.results:
+                    clean_result = re.sub(r'\033\[[0-9;]*m', '', result)
+                    f.write(clean_result + "\n")
             
-            for строка in self.результаты:
-                # Убираем цветовые коды для текстового файла
-                чистая_строка = re.sub(r'\033\[[0-9;]*m', '', строка)
-                файл.write(чистая_строка + "\n")
-        
-        print(f"\n\033[92m✅ Отчет сохранен: {имя_файла}\033[0m")
-        return имя_файла
+            print(f"{self.colors['green']}[+] Report saved: {filename}{self.colors['end']}")
+            return filename
+        except Exception as e:
+            print(f"{self.colors['red']}[-] Error saving report: {e}{self.colors['end']}")
+            return None
     
-    def показать_меню(self):
-        """Главное меню программы"""
+    def show_menu(self):
+        """Display main menu"""
         while True:
-            print("\n\033[95m" + "═"*65 + "\033[0m")
-            print("\033[96m[ МЕНЮ БЕЛОГО АНГЕЛА ]\033[0m")
-            print("\033[95m" + "═"*65 + "\033[0m")
+            print(f"\n{self.colors['purple']}{'='*50}{self.colors['end']}")
+            print(f"{self.colors['cyan']}[ WHITE ANGEL MENU ]{self.colors['end']}")
+            print(f"{self.colors['purple']}{'='*50}{self.colors['end']}")
             
-            print("\033[97m1. 🔍 Анализ IP адреса")
-            print("2. 🌐 Анализ домена")
-            print("3. 📱 Анализ телефона")
-            print("4. 📧 Анализ email")
-            print("5. 👤 Поиск никнейма")
-            print("6. 💾 Сохранить отчет")
-            print("7. 🚪 Выход\033[0m")
-            print("\033[95m" + "═"*65 + "\033[0m")
+            print(f"{self.colors['white']}1. 🔍 Analyze IP Address")
+            print("2. 🌐 Analyze Domain")
+            print("3. 📱 Analyze Phone Number")
+            print("4. 📧 Analyze Email")
+            print("5. 👤 Search Username")
+            print("6. 💾 Save Report")
+            print("7. 🚪 Exit")
+            print(f"{self.colors['purple']}{'='*50}{self.colors['end']}")
             
-            выбор = input("\n\033[93mВыберите действие (1-7): \033[0m").strip()
+            choice = input(f"\n{self.colors['yellow']}[?] Select option (1-7): {self.colors['end']}").strip()
             
-            if выбор == '1':
-                ip = input("\033[94mВведите IP адрес: \033[0m").strip()
-                if ip:
-                    self.анализ_ip(ip)
+            if choice == '1':
+                target = input(f"{self.colors['blue']}[IP] Enter IP address: {self.colors['end']}").strip()
+                if target:
+                    self.analyze_ip(target)
             
-            elif выбор == '2':
-                домен = input("\033[94mВведите домен: \033[0m").strip()
-                if домен:
-                    self.анализ_домена(домен)
+            elif choice == '2':
+                target = input(f"{self.colors['blue']}[Domain] Enter domain: {self.colors['end']}").strip()
+                if target:
+                    self.analyze_domain(target)
             
-            elif выбор == '3':
-                телефон = input("\033[94mВведите телефон: \033[0m").strip()
-                if телефон:
-                    self.анализ_телефона(телефон)
+            elif choice == '3':
+                target = input(f"{self.colors['blue']}[Phone] Enter phone number: {self.colors['end']}").strip()
+                if target:
+                    self.analyze_phone(target)
             
-            elif выбор == '4':
-                почта = input("\033[94mВведите email: \033[0m").strip()
-                if почта:
-                    self.анализ_почты(почта)
+            elif choice == '4':
+                target = input(f"{self.colors['blue']}[Email] Enter email: {self.colors['end']}").strip()
+                if target:
+                    self.analyze_email(target)
             
-            elif выбор == '5':
-                никнейм = input("\033[94mВведите никнейм: \033[0m").strip()
-                if никнейм:
-                    self.поиск_никнейма(никнейм)
+            elif choice == '5':
+                target = input(f"{self.colors['blue']}[Username] Enter username: {self.colors['end']}").strip()
+                if target:
+                    self.search_username(target)
             
-            elif выбор == '6':
-                self.сохранить_отчет()
+            elif choice == '6':
+                self.save_report()
             
-            elif выбор == '7':
-                print("\n\033[92m✨ Белый Ангел завершает работу...\033[0m")
+            elif choice == '7':
+                print(f"\n{self.colors['green']}[+] Thank you for using White Angel!{self.colors['end']}")
                 break
             
             else:
-                print("\n\033[91m❌ Неверный выбор\033[0m")
+                print(f"\n{self.colors['red']}[-] Invalid choice{self.colors['end']}")
             
-            input("\n\033[90mНажмите Enter для продолжения...\033[0m")
+            input(f"\n{self.colors['white']}[Press Enter to continue...]{self.colors['end']}")
 
-def главная():
-    """Точка входа в программу"""
+def main():
+    """Main entry point"""
     try:
-        # Проверка версии Python
-        if sys.version_info[0] < 3:
-            print("\033[91mТребуется Python 3.x или выше\033[0m")
-            return
+        # Clear screen
+        os.system('cls' if os.name == 'nt' else 'clear')
         
-        # Создаем экземпляр Белого Ангела
-        ангел = БелыйАнгел()
+        # Create tool instance
+        tool = WhiteAngel()
         
-        # Показываем логотип
-        ангел.печать_логотип()
+        # Show logo
+        tool.print_logo()
         
-        # Запускаем меню
-        ангел.показать_меню()
+        # Run menu
+        tool.show_menu()
         
     except KeyboardInterrupt:
-        print("\n\n\033[93m⚠️  Программа прервана пользователем\033[0m")
+        print(f"\n{self.colors['yellow']}[!] Interrupted by user{self.colors['end']}")
     except Exception as e:
-        print(f"\n\033[91m❌ Критическая ошибка: {e}\033[0m")
+        print(f"\n{self.colors['red']}[!] Critical error: {e}{self.colors['end']}")
 
 if __name__ == "__main__":
-    # Очищаем экран
-    os.system('cls' if os.name == 'nt' else 'clear')
+    # Check Python version
+    if sys.version_info[0] < 3:
+        print("White Angel requires Python 3.6 or higher")
+        sys.exit(1)
     
-    # Запускаем программу
-    главная()
+    # Run main function
+    main()
